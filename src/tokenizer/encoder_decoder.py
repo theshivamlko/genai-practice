@@ -1,22 +1,37 @@
 
 
 class Encoder:
-    
+    alphabet_map = {}
+
     def __init__(self):
-        alphabet_map = {}
 
         for i in range(1, 27):
-            alphabet_map[i] = chr(96 + i)
+            self.alphabet_map[chr(96 + i)] = i
 
         for i in range(27, 53):
-            alphabet_map[i] = chr(64 + (i - 26))
+            self.alphabet_map[chr(64 + (i - 26))] = i
 
-        alphabet_map[len(alphabet_map) + 1] = ' '
-        print(alphabet_map)
+        self.alphabet_map[' '] = len(self.alphabet_map) + 1
 
 
     def encode(self, text: str):
-        print('Encoding text:', text)
+        encoded_array = []
+        for char in text:
+            encoded_array.append(self.alphabet_map[char])
 
-    def decode(self, text: str):
-        print('Decoded text:', text)
+        print('Encoding text:', text,' converted to => \n', encoded_array)
+
+
+    def decode(self, encoded_array: str):
+        decodedString:str=''
+
+        for i in encoded_array.split(","):
+            for key, value in self.alphabet_map.items():
+                if value == int(i):
+                    decodedString += key
+                    break
+
+        print('Decoding array:', encoded_array,' converted to => \n', decodedString)
+
+
+

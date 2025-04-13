@@ -1,13 +1,24 @@
 from google import genai
-from google.genai import types
+from google.genai.types import Content, GenerateContentConfig
+from google.genai.types import Part
 from dotenv import load_dotenv
-import  os
+import os
 
 load_dotenv()
-apiKey=os.getenv("GEMINI_API_KEY")
+apiKey = os.getenv("GEMINI_API_KEY")
 
 client = genai.Client(api_key=apiKey)
 
-response = client.models.generate_content(model='gemini-2.0-flash',contents="Do you remember what question i have asked you 5 minutes ")
+prompts = [
+    Content(role='user', parts=[Part.from_text(text="List 10 best anime names till March 2025")]),
+    # Content(role='system', parts=[Part.from_text(text="Be an Anime expert only")]),
+]
+
+response = client.models.generate_content(model='gemini-2.0-flash',
+                                          contents=prompts, config=GenerateContentConfig(
+        system_instruction="Be an Anime expert only. Don't answer on other topics. If asked on other topics Reply: I Cannot answer off-topic questions",
+        temperature=1,
+        # max_output_tokens=3,
+    ))
 
 print(f"Response => {response.text}")

@@ -11,7 +11,6 @@ client = genai.Client(api_key=apiKey)
 
 prompts = [
     Content(role='user', parts=[Part.from_text(text="List 10 best anime names till March 2025")]),
-    # Content(role='system', parts=[Part.from_text(text="Be an Anime expert only")]),
 ]
 
 response = client.models.generate_content(model='gemini-2.0-flash',
@@ -23,9 +22,9 @@ response = client.models.generate_content(model='gemini-2.0-flash',
             text="Use this format to answer , "
                  "[Anime Name] - [YEAR] , Author: [Author Name], Genre: [Genre],"
                  "Main Characters: [Max 2 characters] ,"
-                 "\nDescription: [Description]\n"),
+                 "\n[Answer]\n"),
         ]),
-        temperature=1,
+        temperature=0,
         # max_output_tokens=3,
     ))
 

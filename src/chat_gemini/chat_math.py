@@ -10,12 +10,12 @@ apiKey = os.getenv("GEMINI_API_KEY")
 client = genai.Client(api_key=apiKey)
 
 prompts = [
-    Content(role='user', parts=[Part.from_text(text="Whats is love ?")]),
+    Content(role='user', parts=[Part.from_text(text="Whats is greater 9.8 or 9.11 ?")]),
 ]
 
 response = client.models.generate_content(model='gemini-2.0-flash',
                                           contents=prompts, config=GenerateContentConfig(
-# chain of thoughts prompting
+        # chain of thoughts prompting
         system_instruction=Content(role="system", parts=[
             Part.from_text(
                 text="""Follow strict JSON for output instruction:"

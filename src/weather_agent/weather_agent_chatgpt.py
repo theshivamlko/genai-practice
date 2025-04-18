@@ -124,7 +124,7 @@ messages = [
 ]
 
 while True:
-    sleep(2)
+    sleep(1)
 
     response = client.chat.completions.create(
         model="gpt-4o",

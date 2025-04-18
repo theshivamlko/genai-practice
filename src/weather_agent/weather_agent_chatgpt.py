@@ -12,8 +12,8 @@ apiKey = os.getenv("CHATGPT_API_KEY")
 
 client = OpenAI(api_key=apiKey)
 
-# userQuery = input('> ')
-userQuery = "Whats weather in Lucknow and Hyderabad in Fahrenheit ."
+userQuery = input('> ')
+# userQuery = "Whats weather in Lucknow and Hyderabad in Fahrenheit ."
 
 def get_weather(cityName: str) -> str:
     url = f"""https://wttr.in/{cityName}?format=%C+%t"""

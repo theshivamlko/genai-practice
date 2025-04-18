@@ -13,13 +13,13 @@ apiKey = os.getenv("GEMINI_API_KEY")
 gemini: Client = genai.Client(api_key=apiKey)
 
 # userQuery =input('> ')
-userQuery = "Whats weather in  Hyderabad"
+userQuery = "Whats weather in Lucknow"
 
 
 def get_weather(location: str) -> str:
-    url=f"""https://wttr.in/{location}?format=%C+%t"""
+    url = f"""https://wttr.in/{location}?format=%C+%t"""
 
-    response=requests.get(url)
+    response = requests.get(url)
 
     if response.status_code == 200:
         return response.text
@@ -45,41 +45,46 @@ promptlist: list[Content] = [
     ])
 ]
 
-output_format = {
-    "steps": [
-        {
+output_format = """
+ {
             "step": "string",
             "content": "string",
             "function": "string (optional)",
             "input_params": "string (optional)"
-        }
-        # ... more steps will be added here
-    ]
-}
+        } """
 
 # Define the example output as a Python dictionary
-example_output = {
-    "steps": [
-        {"step": "plan", "content": "User wants to know the weather in New York."},
-        {"step": "plan", "content": "I will use the 'getWeather' tool to retrieve this information."},
-        {"step": "action", "content": "getWeather", "function": "getWeather", "input_params": "New York"},
-    ]
-}
-system_prompt_text = f"""You are a helpful assistant who operates in a 'start, plan, action, observer' mode to resolve user queries step by step.
-The output MUST be a single, valid JSON object. Do not include any markdown formatting, code blocks, or extraneous text around the JSON.
-The JSON object will contain an array named 'steps', where each element represents a step.
-Each step has 'step', 'content', and optionally 'function' and 'input_params' for 'action' steps.
-Follow the 'start, plan, action, observer' cycle meticulously.
+example_output = """
 
+This step tell what to user is interested in and what is the next step to be performed.
+      Output: {{ "step": "plan", "content": "The user is interested in weather data of new york" }}
+      
+      This step tell which tool to look for in available tools for the next step.
+      Output: {{ "step": "plan", "content": "From the available tools I should call get_weather" }}
+      
+    This step tell tool name and input params to be used in given format.
+     Output: {{ "step": "action", "function": "get_weather", "input": "new york" }}
+     
+    This step understand the output.
+     Output: {{ "step": "observe", "output": "12 Degree Cel" }}
+     
+    This step tell the final output to user friendly format.
+     Output: {{ "step": "output", "content": "The weather for new york seems to be 12 degrees." }}
+    """
+
+system_prompt_text = f"""
+    You are an helpfull AI Assistant who is specialized in resolving user query.
+    You work on start, plan, action, observe mode.
+    For the given user query and available tools, plan the step by step execution, based on the planning,
+    select the relevant tool from the available tools. and based on the tool selection you perform an action to call the tool.
+    Wait for the observation and based on the observation from the tool call resolve the user query.
+    
 Rules:
-1. The final output MUST be a single.
-2. Each element in the 'steps' array follows the specified JSON format: {json.dumps(output_format['steps'][0])}
-4. Perform 1 step at a time and wait for its result.
-5. Pass result from a step to next step. represented as a JSON object within as 'step'.
-6. If a step fails, include an 'error' step with a detailed error content and then conclude.
-7. If no error found , then strictly complete all steps.
-
-Output format: {json.dumps(output_format)}
+1. The final output MUST be a single JSON Object.
+2. Each output has step follows the specified JSON format: {json.dumps(output_format)}
+3. Always perform one step at a time and wait for next input.
+4. If a step fails, include an 'error' step with a detailed error content and then conclude.
+5. Each step proceed to next step
 
 Available tools:
 {availableToolsStr}
@@ -87,9 +92,10 @@ Available tools:
  
 Example:
 User query: What's the weather like in Tokyo?
-Output: {json.dumps(example_output)}
-"""
 
+Output for each step
+ {json.dumps(example_output)}
+"""
 
 # print(system_prompt_text)
 
@@ -100,39 +106,62 @@ systemPrompt = Content(
     ]
 )
 
-response: GenerateContentResponse = gemini.models.generate_content(
-    model="gemini-2.0-flash",
-    contents=promptlist,
-    config=GenerateContentConfig(
-        system_instruction=systemPrompt,
-        response_mime_type='application/json',
-    ),
-)
+while True:
 
-print(response.text)
+    response: GenerateContentResponse = gemini.models.generate_content(
+        model="gemini-2.0-flash",
+        contents=promptlist,
+        config=GenerateContentConfig(
+            system_instruction=systemPrompt,
+            response_mime_type='application/json',
+        ),
+    )
 
-jsonData = json.loads(response.text)
+    print(response.text, "\n\n")
 
-for step in jsonData["steps"]:
+    jsonData = json.loads(response.text)
 
-    if step["step"] == "error":
-        print("5. Error in processing the request: => ", step['content'])
+    if jsonData["step"] == "error":
+        print("5. Error in processing the request: => ", jsonData['content'])
 
-    if step["step"] == "plan":
-        print("1. Plan: => ", step['content'])
+    if jsonData["step"] == "plan":
+        print("1. Plan: => ", jsonData['content'])
+        #
+        # promptlist = [
+        #     Content(role="user", parts=[
+        #         Part.from_text(text=json.dumps({
+        #             "step": "plan",
+        #             "content": jsonData['content']
+        #         }))
+        #     ])
+        # ]
+        continue
 
-    if step["step"] == "action":
-        print("2. Action Performed: => ", step['content'])
-        toolName = step['function']
-        toolParams = step['input_params']
+    if jsonData["step"] == "action":
+        print("2. Action Performed: => ", jsonData['content'], jsonData['function'])
+        toolName = jsonData['function']
+        toolParams = jsonData['input_params']
 
         if availableTools.get(toolName, False):
             output = availableTools[toolName].get('func')(toolParams)
             print("     Action Result: => ", output)
 
+            promptlist = [
+                Content(role="user", parts=[
+                    Part.from_text(text=json.dumps({
+                        "step": "observer",
+                        "output": jsonData['content']
+                    }))
+                ])
+            ]
+            continue
 
-    if step["step"] == "observer":
-        print("3. Observation: => ", step['content'])
+    if jsonData["step"] == "output":
+        print("4. Output Performed: => ", jsonData['content'])
 
-    if step["step"] == "output":
-        print("4. Output Performed: => ", step['content'])
+        promptlist = [
+            Content(role="user", parts=[
+                Part.from_text(text=jsonData['content'])
+            ])
+        ]
+        break

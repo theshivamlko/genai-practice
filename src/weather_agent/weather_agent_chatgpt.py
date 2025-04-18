@@ -1,7 +1,6 @@
 import json
 from time import sleep
 import os
-
 import requests
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -9,10 +8,11 @@ from openai import OpenAI
 load_dotenv()
 apiKey = os.getenv("CHATGPT_API_KEY")
 
-
 client = OpenAI(api_key=apiKey)
 
 userQuery = input('> ')
+
+
 # userQuery = "Whats weather in Lucknow and Hyderabad in Fahrenheit ."
 
 def get_weather(cityName: str) -> str:
@@ -26,10 +26,23 @@ def get_weather(cityName: str) -> str:
         return "Error: Unable to fetch weather data."
 
 
+def query_db(sql: str):
+    pass
+
+
+def run_command(command: str):
+    result = os.system(command)
+    return result
+
+
 availableTools = {
     "get_weather": {
         "func": get_weather,
         "description": "Get the weather of a city from Weather API",
+    },
+    "run_command": {
+        "func": run_command,
+        "description": "Run a script cli",
     }
 }
 
@@ -88,19 +101,19 @@ Output for each step
  User query: Whats weather in New York and Boston?
 
 Output for each step
- Plan Output: {json.dumps({ "step": "plan", "content": "The user is interested in weather data of New York and Boston" })}
+ Plan Output: {json.dumps({"step": "plan", "content": "The user is interested in weather data of New York and Boston"})}
 
- Plan Output: {json.dumps({ "step": "plan", "content": "I will use the 'get_weather' tool to retrieve this information." })}
+ Plan Output: {json.dumps({"step": "plan", "content": "I will use the 'get_weather' tool to retrieve this information."})}
 
- Action Output: {json.dumps({ "step": "action", "function": "get_weather", "input_params": "New York" })}
+ Action Output: {json.dumps({"step": "action", "function": "get_weather", "input_params": "New York"})}
 
- Action Output: {json.dumps({ "step": "action", "function": "get_weather", "input_params": "Boston" })}
+ Action Output: {json.dumps({"step": "action", "function": "get_weather", "input_params": "Boston"})}
 
- Observe Output: {json.dumps({ "step": "observe", "output": "15°C and Cloudy in New York" })}
+ Observe Output: {json.dumps({"step": "observe", "output": "15°C and Cloudy in New York"})}
 
- Observe Output: {json.dumps({ "step": "observe", "output": "18°C and Cloudy in Boston" })}
+ Observe Output: {json.dumps({"step": "observe", "output": "18°C and Cloudy in Boston"})}
 
- Output: {json.dumps({ "step": "output", "content": "The weather for New York is approximately 15°C and Boston is 18°C." })}
+ Output: {json.dumps({"step": "output", "content": "The weather for New York is approximately 15°C and Boston is 18°C."})}
 
 
 """
@@ -117,11 +130,11 @@ while True:
         model="gpt-4o",
         messages=messages,
         temperature=0,
+        response_format={"type": "json_object"},
     )
 
     print("Response=>\n", response.choices[0].message.content, "\n\n")
     jsonData = json.loads(response.choices[0].message.content)
-
 
     if jsonData["step"] == "error":
         print("5. Error in processing the request: => ", jsonData['content'])
@@ -152,7 +165,7 @@ while True:
                 "role": "user",
                 "content": json.dumps({
                     "step": "observe",
-                    "output": output
+                    "output": f'Output from action steps is {output}'
                 })
             })
             continue

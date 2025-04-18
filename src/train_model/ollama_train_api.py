@@ -1,7 +1,6 @@
 from fastapi import  FastAPI
 from ollama import Client
 
-
 apiClient=FastAPI()
 
 try:

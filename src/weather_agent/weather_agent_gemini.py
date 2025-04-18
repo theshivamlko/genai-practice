@@ -1,4 +1,5 @@
 import json
+from time import sleep
 
 import requests
 from google import genai
@@ -13,11 +14,11 @@ apiKey = os.getenv("GEMINI_API_KEY")
 gemini: Client = genai.Client(api_key=apiKey)
 
 # userQuery =input('> ')
-userQuery = "Whats weather in Lucknow"
+userQuery = "Whats weather in Lucknow and Hyderabad in Fahrenheit ."
 
 
-def get_weather(location: str) -> str:
-    url = f"""https://wttr.in/{location}?format=%C+%t"""
+def get_weather(cityName: str) -> str:
+    url = f"""https://wttr.in/{cityName}?format=%C+%t"""
 
     response = requests.get(url)
 
@@ -30,7 +31,7 @@ def get_weather(location: str) -> str:
 availableTools = {
     "get_weather": {
         "func": get_weather,
-        "description": "Get the weather of a location from Weather API",
+        "description": "Get the weather of a city from Weather API",
 
     }
 }
@@ -57,19 +58,19 @@ output_format = """
 example_output = """
 
 This step tell what to user is interested in and what is the next step to be performed.
-      Output: {{ "step": "plan", "content": "The user is interested in weather data of new york" }}
+     Plan Output: {{ "step": "plan", "content": "The user is interested in weather data of New york" }}
       
       This step tell which tool to look for in available tools for the next step.
-      Output: {{ "step": "plan", "content": "From the available tools I should call get_weather" }}
+     Plan Output: {{ "step": "plan", "content": "From the available tools I should call get_weather" }}
       
     This step tell tool name and input params to be used in given format.
-     Output: {{ "step": "action", "function": "get_weather", "input": "new york" }}
+    Action Output: {{ "step": "action", "function": "get_weather", "input": "New york" }}
      
     This step understand the output.
-     Output: {{ "step": "observe", "output": "12 Degree Cel" }}
+     Observe Output: {{ "step": "observe", "output": "12 Degree Cel" }}
      
     This step tell the final output to user friendly format.
-     Output: {{ "step": "output", "content": "The weather for new york seems to be 12 degrees." }}
+     Output: {{ "step": "output", "content": "The weather for New york seems to be 12 degrees." }}
     """
 
 system_prompt_text = f"""
@@ -90,11 +91,30 @@ Available tools:
 {availableToolsStr}
 
  
-Example:
-User query: What's the weather like in Tokyo?
+Sample Example:
+User query: What's the weather in New York?
 
 Output for each step
  {json.dumps(example_output)}
+ 
+ User query: Whats weather in New York and Boston?
+
+Output for each step
+ Plan Output: {json.dumps({ "step": "plan", "content": "The user is interested in weather data of New York and Boston" })}
+
+ Plan Output: {json.dumps({ "step": "plan", "content": "I will use the 'get_weather' tool to retrieve this information." })}
+
+ Action Output: {json.dumps({ "step": "action", "function": "get_weather", "input_params": "New York" })}
+ 
+ Action Output: {json.dumps({ "step": "action", "function": "get_weather", "input_params": "Boston" })}
+
+ Observe Output: {json.dumps({ "step": "observe", "output": "15°C and Cloudy in New York" })}
+ 
+ Observe Output: {json.dumps({ "step": "observe", "output": "18°C and Cloudy in Boston" })}
+
+ Output: {json.dumps({ "step": "output", "content": "The weather for New York is approximately 15°C and Boston is 18°C." })}
+
+
 """
 
 # print(system_prompt_text)
@@ -108,16 +128,20 @@ systemPrompt = Content(
 
 while True:
 
+    sleep(2)
+
     response: GenerateContentResponse = gemini.models.generate_content(
         model="gemini-2.0-flash",
         contents=promptlist,
         config=GenerateContentConfig(
             system_instruction=systemPrompt,
             response_mime_type='application/json',
+            temperature=1
         ),
+
     )
 
-    print(response.text, "\n\n")
+    print("Response=>\n",response.text, "\n\n")
 
     jsonData = json.loads(response.text)
 
@@ -126,19 +150,19 @@ while True:
 
     if jsonData["step"] == "plan":
         print("1. Plan: => ", jsonData['content'])
-        #
-        # promptlist = [
-        #     Content(role="user", parts=[
-        #         Part.from_text(text=json.dumps({
-        #             "step": "plan",
-        #             "content": jsonData['content']
-        #         }))
-        #     ])
-        # ]
+
+        promptlist = [
+            Content(role="user", parts=[
+                Part.from_text(text=json.dumps({
+                    "step": "plan",
+                    "content": jsonData['content']
+                }))
+            ])
+        ]
         continue
 
     if jsonData["step"] == "action":
-        print("2. Action Performed: => ", jsonData['content'], jsonData['function'])
+        print("2. Action Performed: => ", jsonData['function'], jsonData['input_params'])
         toolName = jsonData['function']
         toolParams = jsonData['input_params']
 
@@ -149,8 +173,8 @@ while True:
             promptlist = [
                 Content(role="user", parts=[
                     Part.from_text(text=json.dumps({
-                        "step": "observer",
-                        "output": jsonData['content']
+                        "step": "observe",
+                        "output":output
                     }))
                 ])
             ]

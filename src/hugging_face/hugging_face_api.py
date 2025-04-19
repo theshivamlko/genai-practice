@@ -14,7 +14,6 @@ tokenizer = AutoTokenizer.from_pretrained(modelName)
 
 result=tokenizer("Hello world!")
 
-print("Tokenizer of Gemma Model", )
 print("Is Cuda available", torch.cuda.is_available())
 # print tokenizer.get_vocab())
 

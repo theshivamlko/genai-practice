@@ -39,15 +39,15 @@ embeddings = OpenAIEmbeddings(
 print("Embedding Docs", embeddings.model)
 
 # Adding chunk to DB
-# vector_store =  QdrantVectorStore.from_documents(
-#     documents=[],
-#     collection_name="learn_langchain",
-#     url="http://localhost:6333",
-#     embedding=embeddings
-# )
-#
-#
-# vector_store.add_documents(documents=split_docs)
+vector_store =  QdrantVectorStore.from_documents(
+    documents=[],
+    collection_name="learn_langchain",
+    url="http://localhost:6333",
+    embedding=embeddings
+)
+
+
+vector_store.add_documents(documents=split_docs)
 print("Injection done, Vector DB")
 
 # Retrieval

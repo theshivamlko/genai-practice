@@ -12,7 +12,7 @@ load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # pdf_path = Path(__file__).parent/"abc.pdf"
-pdf_path = """C:\\Users\\thesh\\Downloads\\Documents\\The+48+Laws+Of+Power.pdf"""
+pdf_path = """C:\\Users\\Navoki\\Downloads\\The+48+Laws+Of+Power.pdf"""
 
 loader = PyPDFLoader(file_path=pdf_path)
 
@@ -31,7 +31,7 @@ split_docs = text_splitter.split_documents(documents=docs)
 
 print("Split Docs", len(split_docs))
 
-# set OPENAI_API_KEY as env variable
+# set OPENAI_API_KEY as .env variable
 embeddings = OpenAIEmbeddings(
     model="text-embedding-3-large", api_key=OPENAI_API_KEY
 )

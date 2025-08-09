@@ -1,70 +1,51 @@
-from typing import Literal
+import os
+from typing import Annotated
+
+from langchain.chat_models import init_chat_model
 from typing_extensions import TypedDict
 from langgraph.graph import StateGraph, START, END
+from langgraph.graph.message import add_messages
+from dotenv import load_dotenv
+from openai import OpenAI
+from pydantic import BaseModel
+
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
+
+apiKey = os.getenv("OPENAI_API_KEY")
+
+# openClient = OpenAI(api_key=apiKey)
+
+llm = init_chat_model(model_provider="openai", model="gpt-4o")
 
 
-class StateChat(TypedDict):
-    user_message: str
-    ai_message: str
+class DetectCallResponse(BaseModel):
     is_coding_questions: bool
 
 
-def detect_query(state: StateChat):
-    user_message = state.get("user_message")
-
-    state["is_coding_questions"] = True
-    return state
+class CodingCallResponse(BaseModel):
+    answer: str
 
 
-def solve_coding_question(state: StateChat):
-    user_message = state.get("user_message")
-
-    state["ai_message"] = "Here is you coding question  answer"
+class StateChat(TypedDict):
+    messages: Annotated[list, add_messages]
 
 
-    return state
-
-
-def solve_simple_question(state: StateChat):
-    user_message = state.get("user_message")
-
-    state["ai_message"] = "Please ask a coding question"
-
-    return state
-
-
-def router_edge(state: StateChat) -> Literal["SolveCodingQuestion", "SolveSimpleQuestion"]:
-    if state["is_coding_questions"]:
-        return "SolveCodingQuestion"
-    else:
-        return "SolveSimpleQuestion"
+def chatbot(state: StateChat):
+    messages = state.get("messages")
+    response = llm.invoke(messages)
+    return {"messages": [response]}
 
 
 graph_builder = StateGraph(StateChat)
 
-graph_builder.add_node("DetectQuery", detect_query)
-graph_builder.add_node("SolveCodingQuestion", solve_coding_question)
-graph_builder.add_node("SolveSimpleQuestion", solve_simple_question)
-graph_builder.add_node("RouteEdge", solve_simple_question)
+graph_builder.add_node("chatbot", chatbot)
 
-graph_builder.add_edge(START, "DetectQuery")
-graph_builder.add_conditional_edges("DetectQuery", router_edge)
+graph_builder.add_edge(START, "chatbot")
+graph_builder.add_edge("chatbot", END)
 
-graph_builder.add_edge("SolveCodingQuestion", END)
-graph_builder.add_edge("SolveSimpleQuestion", END)
-
+# Without memory
 graph = graph_builder.compile()
 
-
-def call_invoke_graph():
-    state = {
-        "user_message": "How are you ?",
-        "ai_message": "",
-        "is_coding_questions": False
-    }
-
-    result = graph.invoke(state)
-    print("Final Result", result)
-
-
-call_invoke_graph()
+# create new graph with checkpointer
+def create_chat_graph(checkpointer):
+    return  graph_builder.compile(checkpointer=checkpointer)

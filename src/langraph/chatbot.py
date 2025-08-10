@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from langchain_core.tools import tool
 from langgraph.types import interrupt
 from langgraph.types import Command
-from  langgraph.prebuilt import ToolNode, tools_condition
+from langgraph.prebuilt import ToolNode, tools_condition
 
 
 
@@ -32,7 +32,6 @@ tool_node=ToolNode(tools=tools)
 
 llm = init_chat_model(model_provider="openai",model="gpt-4o")
 llm__with_tools =llm.bind_tools(tools=tools)
-
 
 
 class DetectCallResponse(BaseModel):
